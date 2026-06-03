@@ -10,18 +10,14 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-# ============================================================
 # KONFIGURASI HALAMAN
-# ============================================================
 st.set_page_config(
     page_title="SPK Pemilihan Mobil Mewah",
     page_icon="",
     layout="wide"
 )
 
-# ============================================================
-# CSS KUSTOM
-# ============================================================
+# CSS
 st.markdown("""
 <style>
     .stApp { background-color: #0f1117; color: #f0f2f6; }
@@ -105,10 +101,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
-# ============================================================
 # FUNGSI BANTU: PARSING DATA
-# ============================================================
 def parse_avg(val):
     """Mengekstrak nilai numerik rata-rata dari string yang mengandung rentang."""
     if pd.isna(val):
@@ -135,9 +128,7 @@ def load_and_clean_data():
     return df
 
 
-# ============================================================
 # FUNGSI FUZZY: SISTEM INFERENSI (murni FIS Mamdani)
-# ============================================================
 def build_fuzzy_system():
     """
     Membangun Fuzzy Inference System (FIS) Mamdani untuk penilaian mobil mewah.
@@ -146,57 +137,49 @@ def build_fuzzy_system():
     Variabel Input  : HorsePower, Kecepatan, Akselerasi, Torsi, Harga
     Variabel Output : Skor Kelayakan (0-100)
     """
-    # ----------------------------------------------------------
     # 1. DEFINISI UNIVERSE OF DISCOURSE
-    # ----------------------------------------------------------
-    hp_var     = ctrl.Antecedent(np.arange(0,   2500,     1),    'hp')
-    speed_var  = ctrl.Antecedent(np.arange(80,  501,      1),    'speed')
-    perf_var   = ctrl.Antecedent(np.arange(1,   36,       0.1),  'perf')
-    torque_var = ctrl.Antecedent(np.arange(0,   3501,     1),    'torque')
-    harga_var  = ctrl.Antecedent(np.arange(0,   18000001, 1000), 'harga')
-    skor_var   = ctrl.Consequent(np.arange(0,   101,      1),    'skor')
+    hp_var     = ctrl.Antecedent(np.arange(0, 2500, 1), 'hp')
+    speed_var  = ctrl.Antecedent(np.arange(80, 501, 1), 'speed')
+    perf_var   = ctrl.Antecedent(np.arange(1, 36, 0.1), 'perf')
+    torque_var = ctrl.Antecedent(np.arange(0, 3501, 1), 'torque')
+    harga_var  = ctrl.Antecedent(np.arange(0, 18000001, 1000), 'harga')
+    skor_var   = ctrl.Consequent(np.arange(0, 101, 1), 'skor')
 
-    # ----------------------------------------------------------
     # 2. FUNGSI KEANGGOTAAN — INPUT
-    # ----------------------------------------------------------
     # HorsePower: rendah / sedang / tinggi
-    hp_var['rendah'] = fuzz.trimf(hp_var.universe, [0,    0,    500])
-    hp_var['sedang'] = fuzz.trimf(hp_var.universe, [200,  700,  1200])
-    hp_var['tinggi'] = fuzz.trimf(hp_var.universe, [900,  2500, 2500])
+    hp_var['rendah'] = fuzz.trimf(hp_var.universe, [0, 0, 500])
+    hp_var['sedang'] = fuzz.trimf(hp_var.universe, [200, 700, 1200])
+    hp_var['tinggi'] = fuzz.trimf(hp_var.universe, [900, 2500, 2500])
 
     # Kecepatan: lambat / sedang / cepat
-    speed_var['lambat'] = fuzz.trimf(speed_var.universe, [80,  80,  200])
+    speed_var['lambat'] = fuzz.trimf(speed_var.universe, [80, 80, 200])
     speed_var['sedang'] = fuzz.trimf(speed_var.universe, [150, 250, 350])
     speed_var['cepat']  = fuzz.trimf(speed_var.universe, [300, 501, 501])
 
     # Akselerasi 0-100 km/h: cepat / sedang / lambat
     # Nilai KECIL = akselerasi CEPAT (lebih baik)
-    perf_var['cepat']  = fuzz.trimf(perf_var.universe, [1,  1,  5])
-    perf_var['sedang'] = fuzz.trimf(perf_var.universe, [3,  8,  15])
+    perf_var['cepat']  = fuzz.trimf(perf_var.universe, [1, 1, 5])
+    perf_var['sedang'] = fuzz.trimf(perf_var.universe, [3, 8, 15])
     perf_var['lambat'] = fuzz.trimf(perf_var.universe, [10, 36, 36])
 
     # Torsi: rendah / sedang / tinggi
-    torque_var['rendah'] = fuzz.trimf(torque_var.universe, [0,    0,    500])
-    torque_var['sedang'] = fuzz.trimf(torque_var.universe, [300,  800,  1500])
+    torque_var['rendah'] = fuzz.trimf(torque_var.universe, [0, 0, 500])
+    torque_var['sedang'] = fuzz.trimf(torque_var.universe, [300, 800, 1500])
     torque_var['tinggi'] = fuzz.trimf(torque_var.universe, [1000, 3501, 3501])
 
     # Harga: murah / menengah / mewah
-    harga_var['murah']    = fuzz.trimf(harga_var.universe, [0,      0,        300000])
-    harga_var['menengah'] = fuzz.trimf(harga_var.universe, [100000, 500000,   1000000])
+    harga_var['murah']    = fuzz.trimf(harga_var.universe, [0, 0, 300000])
+    harga_var['menengah'] = fuzz.trimf(harga_var.universe, [100000, 500000, 1000000])
     harga_var['mewah']    = fuzz.trimf(harga_var.universe, [500000, 18000001, 18000001])
 
-    # ----------------------------------------------------------
     # 3. FUNGSI KEANGGOTAAN — OUTPUT SKOR
-    # ----------------------------------------------------------
-    skor_var['sangat_rendah'] = fuzz.trimf(skor_var.universe, [0,  0,  25])
+    skor_var['sangat_rendah'] = fuzz.trimf(skor_var.universe, [0, 0, 25])
     skor_var['rendah']        = fuzz.trimf(skor_var.universe, [10, 30, 50])
     skor_var['sedang']        = fuzz.trimf(skor_var.universe, [35, 55, 75])
     skor_var['tinggi']        = fuzz.trimf(skor_var.universe, [60, 80, 95])
     skor_var['sangat_tinggi'] = fuzz.trimf(skor_var.universe, [80, 100, 100])
 
-    # ----------------------------------------------------------
-    # 4. RULE BASE (Dasar Aturan Fuzzy — Mamdani)
-    # ----------------------------------------------------------
+    # 4. RULE BASE (Dasar Aturan Fuzzy Mamdani)
     rules = [
         # Kombinasi terbaik: semua kriteria unggul
         ctrl.Rule(
@@ -270,20 +253,17 @@ def hitung_skor_fuzzy(row, tipping_ctrl):
     """
     try:
         sim = ctrl.ControlSystemSimulation(tipping_ctrl)
-        sim.input['hp']     = float(np.clip(row['HP_Num'],     0,      2499))
-        sim.input['speed']  = float(np.clip(row['Speed_Num'],  80,     500))
-        sim.input['perf']   = float(np.clip(row['Perf_Num'],   1,      35.9))
-        sim.input['torque'] = float(np.clip(row['Torque_Num'], 0,      3500))
-        sim.input['harga']  = float(np.clip(row['Price_Num'],  0,      17999999))
+        sim.input['hp'] = float(np.clip(row['HP_Num'], 0, 2499))
+        sim.input['speed'] = float(np.clip(row['Speed_Num'], 80, 500))
+        sim.input['perf'] = float(np.clip(row['Perf_Num'], 1, 35.9))
+        sim.input['torque'] = float(np.clip(row['Torque_Num'], 0, 3500))
+        sim.input['harga'] = float(np.clip(row['Price_Num'], 0, 17999999))
         sim.compute()
         return round(sim.output['skor'], 4)
     except Exception:
         return np.nan
 
-
-# ============================================================
 # FUNGSI VISUALISASI KURVA KEANGGOTAAN
-# ============================================================
 def plot_kurva_keanggotaan(hp_var, speed_var, perf_var, torque_var, harga_var, skor_var):
     fig, axes = plt.subplots(2, 3, figsize=(16, 8))
     fig.patch.set_facecolor('#0f1117')
@@ -292,15 +272,15 @@ def plot_kurva_keanggotaan(hp_var, speed_var, perf_var, torque_var, harga_var, s
 
     configs = [
         (hp_var,     'HorsePower (hp)',
-         ['rendah', 'sedang', 'tinggi'],       ['#5bc8f5', '#4dda7e', '#ff6b6b']),
+         ['rendah', 'sedang', 'tinggi'], ['#5bc8f5', '#4dda7e', '#ff6b6b']),
         (speed_var,  'Kecepatan (km/h)',
-         ['lambat', 'sedang', 'cepat'],        ['#5bc8f5', '#4dda7e', '#ff6b6b']),
+         ['lambat', 'sedang', 'cepat'], ['#5bc8f5', '#4dda7e', '#ff6b6b']),
         (perf_var,   'Akselerasi 0-100 (detik)',
-         ['cepat', 'sedang', 'lambat'],        ['#ff6b6b', '#4dda7e', '#5bc8f5']),
+         ['cepat', 'sedang', 'lambat'], ['#ff6b6b', '#4dda7e', '#5bc8f5']),
         (torque_var, 'Torsi (Nm)',
-         ['rendah', 'sedang', 'tinggi'],       ['#5bc8f5', '#4dda7e', '#ff6b6b']),
+         ['rendah', 'sedang', 'tinggi'], ['#5bc8f5', '#4dda7e', '#ff6b6b']),
         (harga_var,  'Harga (USD)',
-         ['murah', 'menengah', 'mewah'],       ['#5bc8f5', '#4dda7e', '#ff6b6b']),
+         ['murah', 'menengah', 'mewah'], ['#5bc8f5', '#4dda7e', '#ff6b6b']),
         (skor_var,   'Skor Kelayakan (0-100)',
          ['sangat_rendah', 'rendah', 'sedang', 'tinggi', 'sangat_tinggi'],
          ['#ff4444', '#ff9944', '#ffdd44', '#66dd66', '#44ff99']),
@@ -309,9 +289,7 @@ def plot_kurva_keanggotaan(hp_var, speed_var, perf_var, torque_var, harga_var, s
     for ax, (var, label, terms, colors) in zip(axes.flatten(), configs):
         ax.set_facecolor('#1e2235')
         for term, color in zip(terms, colors):
-            ax.plot(var.universe,
-                    fuzz.interp_membership(var.universe, var[term].mf, var.universe),
-                    label=term, color=color, linewidth=2.5)
+            ax.plot(var.universe, fuzz.interp_membership(var.universe, var[term].mf, var.universe), label=term, color=color, linewidth=2.5)
         ax.set_title(label, fontsize=10, fontweight='bold', color='white', pad=8)
         ax.set_xlabel('Nilai', color='#b0b8d1', fontsize=9)
         ax.set_ylabel('Derajat Keanggotaan', color='#b0b8d1', fontsize=9)
@@ -327,9 +305,8 @@ def plot_kurva_keanggotaan(hp_var, speed_var, perf_var, torque_var, harga_var, s
     plt.tight_layout()
     return fig
 
-
 def plot_top_n(df_hasil, n=10):
-    top    = df_hasil.head(n).copy()
+    top = df_hasil.head(n).copy()
     labels = top['Nama Mobil']
     scores = top['Skor Fuzzy']
 
@@ -344,17 +321,14 @@ def plot_top_n(df_hasil, n=10):
     ax.set_yticklabels(labels, fontsize=9, color='white')
     ax.invert_yaxis()
     ax.set_xlabel('Skor Fuzzy', fontsize=10, color='#b0b8d1')
-    ax.set_title(f'Top {n} Rekomendasi Mobil Mewah',
-                 fontsize=13, fontweight='bold', color='white', pad=12)
+    ax.set_title(f'Top {n} Rekomendasi Mobil Mewah', fontsize=13, fontweight='bold', color='white', pad=12)
     ax.set_xlim(0, 110)
     ax.grid(axis='x', alpha=0.2, color='#4a5070')
     ax.tick_params(colors='#b0b8d1', labelsize=9)
     for spine in ax.spines.values():
         spine.set_edgecolor('#3a3f55')
     for bar, score in zip(bars, scores):
-        ax.text(bar.get_width() + 0.8, bar.get_y() + bar.get_height() / 2,
-                f'{score:.2f}', va='center', ha='left', fontsize=9,
-                fontweight='bold', color='white')
+        ax.text(bar.get_width() + 0.8, bar.get_y() + bar.get_height() / 2, f'{score:.2f}', va='center', ha='left', fontsize=9, fontweight='bold', color='white')
 
     leg = ax.legend(
         handles=[
@@ -371,16 +345,10 @@ def plot_top_n(df_hasil, n=10):
     plt.tight_layout()
     return fig
 
-
-# ============================================================
 # LOAD DATA
-# ============================================================
 df_raw = load_and_clean_data()
 
-
-# ============================================================
 # NAVIGASI SIDEBAR
-# ============================================================
 with st.sidebar:
     st.markdown("## SPK Mobil Mewah")
     st.markdown("**Sistem Pendukung Keputusan**  \nPemilihan Mobil Mewah Pertama  \nMenggunakan Metode Fuzzy")
@@ -405,10 +373,7 @@ Kriteria yang digunakan:
 - Harga (USD)
     """)
 
-
-# ============================================================
 # HALAMAN: BERANDA
-# ============================================================
 if halaman == "Beranda":
     st.markdown('<div class="main-title">Sistem Pendukung Keputusan</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-title">Rekomendasi Mobil Mewah Pertama untuk Orang Kaya Baru</div>', unsafe_allow_html=True)
@@ -442,12 +407,12 @@ if halaman == "Beranda":
     with col_b:
         st.markdown('<p class="section-header">Kriteria Penilaian</p>', unsafe_allow_html=True)
         kriteria_data = {
-            "Kriteria":   ["HorsePower", "Kecepatan Maksimum",
+            "Kriteria": ["HorsePower", "Kecepatan Maksimum",
                            "Akselerasi 0-100 km/h", "Torsi", "Harga"],
             "Keterangan": ["Tenaga mesin (hp)", "Kecepatan puncak (km/h)",
                            "Waktu akselerasi (detik)", "Momen puntir mesin (Nm)",
                            "Harga kendaraan (USD)"],
-            "Tipe":       ["Benefit", "Benefit", "Cost", "Benefit", "Benefit"]
+            "Tipe": ["Benefit", "Benefit", "Cost", "Benefit", "Benefit"]
         }
         st.dataframe(pd.DataFrame(kriteria_data), use_container_width=True, hide_index=True)
 
@@ -470,10 +435,7 @@ if halaman == "Beranda":
         </div>
         """, unsafe_allow_html=True)
 
-
-# ============================================================
 # HALAMAN: DATASET
-# ============================================================
 elif halaman == "Dataset":
     st.markdown('<div class="main-title">Dataset Mobil 2025</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-title">Cars Dataset 2025 — 1.218 data kendaraan dari berbagai merek dunia</div>', unsafe_allow_html=True)
@@ -489,8 +451,7 @@ elif halaman == "Dataset":
         pilih_bb         = st.selectbox("Tipe Bahan Bakar", bahan_bakar_list)
     with col3:
         harga_min, harga_max = int(df_raw['Price_Num'].min()), int(df_raw['Price_Num'].max())
-        rentang_harga = st.slider("Rentang Harga (USD)", harga_min, harga_max,
-                                  (harga_min, harga_max), step=10000)
+        rentang_harga = st.slider("Rentang Harga (USD)", harga_min, harga_max,(harga_min, harga_max), step=10000)
 
     df_filtered = df_raw.copy()
     if pilih_merek != "Semua":
@@ -503,31 +464,23 @@ elif halaman == "Dataset":
     ]
 
     st.markdown(f"**Menampilkan {len(df_filtered):,} dari {len(df_raw):,} data**")
-    kolom_tampil = ['Company Names', 'Cars Names', 'Engines', 'HorsePower',
-                    'Total Speed', 'Performance(0 - 100 )KM/H', 'Cars Prices',
-                    'Fuel Types', 'Seats', 'Torque']
+    kolom_tampil = ['Company Names', 'Cars Names', 'Engines', 'HorsePower', 'Total Speed', 'Performance(0 - 100 )KM/H', 'Cars Prices', 'Fuel Types', 'Seats', 'Torque']
     st.dataframe(df_filtered[kolom_tampil], use_container_width=True, height=450)
 
     st.markdown("---")
     st.markdown('<p class="section-header">Statistik Deskriptif (Nilai Numerik)</p>', unsafe_allow_html=True)
     stat_df = df_filtered[['HP_Num', 'Speed_Num', 'Perf_Num', 'Torque_Num', 'Price_Num']].describe().round(2)
     stat_df.index.name = "Statistik"
-    stat_df.columns = ['HorsePower (hp)', 'Kecepatan (km/h)',
-                        'Akselerasi (detik)', 'Torsi (Nm)', 'Harga (USD)']
+    stat_df.columns = ['HorsePower (hp)', 'Kecepatan (km/h)', 'Akselerasi (detik)', 'Torsi (Nm)', 'Harga (USD)']
     st.dataframe(stat_df, use_container_width=True)
 
-
-# ============================================================
 # HALAMAN: HITUNG SPK
-# ============================================================
 elif halaman == "Hitung SPK":
     st.markdown('<div class="main-title">Hitung SPK — Metode Fuzzy Mamdani</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-title">Atur filter kriteria lalu jalankan perhitungan Fuzzy Inference System</div>', unsafe_allow_html=True)
     st.markdown("---")
 
-    # ----------------------------------------------------------
     # FILTER KRITERIA
-    # ----------------------------------------------------------
     st.markdown('<p class="section-header">Filter Kriteria Pencarian</p>', unsafe_allow_html=True)
     st.markdown("""
     <div class="info-box">
@@ -538,11 +491,11 @@ elif halaman == "Hitung SPK":
     """, unsafe_allow_html=True)
 
     # Ambil batas aktual dari dataset
-    hp_min_data,     hp_max_data     = int(df_raw['HP_Num'].min()),     int(df_raw['HP_Num'].max())
-    speed_min_data,  speed_max_data  = int(df_raw['Speed_Num'].min()),  int(df_raw['Speed_Num'].max())
-    perf_min_data,   perf_max_data   = float(df_raw['Perf_Num'].min()), float(df_raw['Perf_Num'].max())
+    hp_min_data, hp_max_data = int(df_raw['HP_Num'].min()), int(df_raw['HP_Num'].max())
+    speed_min_data, speed_max_data = int(df_raw['Speed_Num'].min()), int(df_raw['Speed_Num'].max())
+    perf_min_data, perf_max_data = float(df_raw['Perf_Num'].min()), float(df_raw['Perf_Num'].max())
     torque_min_data, torque_max_data = int(df_raw['Torque_Num'].min()), int(df_raw['Torque_Num'].max())
-    price_min_data,  price_max_data  = int(df_raw['Price_Num'].min()),  int(df_raw['Price_Num'].max())
+    price_min_data, price_max_data = int(df_raw['Price_Num'].min()),  int(df_raw['Price_Num'].max())
 
     col1, col2 = st.columns(2)
 
@@ -632,19 +585,17 @@ elif halaman == "Hitung SPK":
         </div>
         """, unsafe_allow_html=True)
 
-    # ----------------------------------------------------------
     # PROSES PERHITUNGAN
-    # ----------------------------------------------------------
     if tombol_hitung:
         df_hitung = df_raw.copy()
 
         # Terapkan semua filter
         df_hitung = df_hitung[
-            (df_hitung['HP_Num']     >= filter_hp[0])     & (df_hitung['HP_Num']     <= filter_hp[1])     &
-            (df_hitung['Speed_Num']  >= filter_speed[0])  & (df_hitung['Speed_Num']  <= filter_speed[1])  &
-            (df_hitung['Perf_Num']   >= filter_perf[0])   & (df_hitung['Perf_Num']   <= filter_perf[1])   &
+            (df_hitung['HP_Num'] >= filter_hp[0]) & (df_hitung['HP_Num'] <= filter_hp[1]) &
+            (df_hitung['Speed_Num'] >= filter_speed[0]) & (df_hitung['Speed_Num'] <= filter_speed[1]) &
+            (df_hitung['Perf_Num'] >= filter_perf[0]) & (df_hitung['Perf_Num'] <= filter_perf[1]) &
             (df_hitung['Torque_Num'] >= filter_torque[0]) & (df_hitung['Torque_Num'] <= filter_torque[1]) &
-            (df_hitung['Price_Num']  >= filter_harga[0])  & (df_hitung['Price_Num']  <= filter_harga[1])
+            (df_hitung['Price_Num'] >= filter_harga[0]) & (df_hitung['Price_Num'] <= filter_harga[1])
         ]
         if filter_merek_spk != "Semua":
             df_hitung = df_hitung[df_hitung['Company Names'] == filter_merek_spk]
@@ -695,7 +646,7 @@ elif halaman == "Hitung SPK":
             st.session_state['skor_var']   = skor_var
             st.session_state['n_hasil']    = n_hasil
 
-            # ---- TAMPILKAN HASIL ----
+            # TAMPILKAN HASIL
             st.success(f"Berhasil menghitung skor untuk **{len(df_hitung_sorted):,} mobil**!")
             st.markdown("---")
 
@@ -739,12 +690,9 @@ elif halaman == "Hitung SPK":
                 f'<p class="section-header">Tabel Hasil Perangkingan (Top {n_hasil})</p>',
                 unsafe_allow_html=True
             )
-            kolom_hasil = ['Peringkat', 'Nama Mobil', 'Skor Fuzzy', 'HP_Num',
-                           'Speed_Num', 'Perf_Num', 'Torque_Num', 'Price_Num', 'Fuel Types']
+            kolom_hasil = ['Peringkat', 'Nama Mobil', 'Skor Fuzzy', 'HP_Num', 'Speed_Num', 'Perf_Num', 'Torque_Num', 'Price_Num', 'Fuel Types']
             df_tampil = df_hitung_sorted[kolom_hasil].head(n_hasil).copy()
-            df_tampil.columns = ['Peringkat', 'Nama Mobil', 'Skor Fuzzy',
-                                 'HP (hp)', 'Kec. Maks (km/h)', 'Akselerasi (dtk)',
-                                 'Torsi (Nm)', 'Harga (USD)', 'Bahan Bakar']
+            df_tampil.columns = ['Peringkat', 'Nama Mobil', 'Skor Fuzzy', 'HP (hp)', 'Kec. Maks (km/h)', 'Akselerasi (dtk)', 'Torsi (Nm)', 'Harga (USD)', 'Bahan Bakar']
             df_tampil['Skor Fuzzy']       = df_tampil['Skor Fuzzy'].round(2)
             df_tampil['HP (hp)']          = df_tampil['HP (hp)'].round(0).astype(int)
             df_tampil['Kec. Maks (km/h)'] = df_tampil['Kec. Maks (km/h)'].round(0).astype(int)
@@ -753,7 +701,7 @@ elif halaman == "Hitung SPK":
             df_tampil['Harga (USD)']      = df_tampil['Harga (USD)'].apply(lambda x: f"${x:,.0f}")
             st.dataframe(df_tampil, use_container_width=True, hide_index=True)
 
-            # ---- TABEL DEFUZZIFIKASI ----
+            # TABEL DEFUZZIFIKASI
             st.markdown("---")
             st.markdown(
                 '<p class="section-header">Tabel Defuzzifikasi (Sampel 10 Teratas)</p>',
@@ -768,8 +716,7 @@ elif halaman == "Hitung SPK":
             """, unsafe_allow_html=True)
 
             sample_defuzz = df_hitung_sorted.head(10)[
-                ['Peringkat', 'Nama Mobil', 'HP_Num', 'Speed_Num',
-                 'Perf_Num', 'Torque_Num', 'Price_Num', 'Skor Fuzzy']
+                ['Peringkat', 'Nama Mobil', 'HP_Num', 'Speed_Num', 'Perf_Num', 'Torque_Num', 'Price_Num', 'Skor Fuzzy']
             ].copy()
 
             def label_hp(v):
@@ -781,23 +728,23 @@ elif halaman == "Hitung SPK":
                 if v < 300: return "Sedang"
                 return "Cepat"
             def label_perf(v):
-                if v < 5:  return "Cepat"
+                if v < 5: return "Cepat"
                 if v < 10: return "Sedang"
                 return "Lambat"
             def label_torque(v):
-                if v < 500:  return "Rendah"
+                if v < 500: return "Rendah"
                 if v < 1000: return "Sedang"
                 return "Tinggi"
             def label_harga(v):
-                if v < 300000:  return "Murah"
+                if v < 300000: return "Murah"
                 if v < 1000000: return "Menengah"
                 return "Mewah"
 
-            sample_defuzz['Label HP']     = sample_defuzz['HP_Num'].apply(label_hp)
-            sample_defuzz['Label Speed']  = sample_defuzz['Speed_Num'].apply(label_speed)
-            sample_defuzz['Label Perf']   = sample_defuzz['Perf_Num'].apply(label_perf)
+            sample_defuzz['Label HP'] = sample_defuzz['HP_Num'].apply(label_hp)
+            sample_defuzz['Label Speed'] = sample_defuzz['Speed_Num'].apply(label_speed)
+            sample_defuzz['Label Perf'] = sample_defuzz['Perf_Num'].apply(label_perf)
             sample_defuzz['Label Torque'] = sample_defuzz['Torque_Num'].apply(label_torque)
-            sample_defuzz['Label Harga']  = sample_defuzz['Price_Num'].apply(label_harga)
+            sample_defuzz['Label Harga'] = sample_defuzz['Price_Num'].apply(label_harga)
 
             kolom_defuzz = ['Peringkat', 'Nama Mobil',
                             'HP_Num',     'Label HP',
@@ -842,10 +789,7 @@ elif halaman == "Hitung SPK":
         </div>
         """, unsafe_allow_html=True)
 
-
-# ============================================================
 # HALAMAN: VISUALISASI
-# ============================================================
 elif halaman == "Visualisasi":
     st.markdown('<div class="main-title">Visualisasi Fuzzy</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-title">Kurva keanggotaan dan analisis hasil perhitungan SPK</div>', unsafe_allow_html=True)
@@ -892,10 +836,7 @@ elif halaman == "Visualisasi":
         st.pyplot(fig_bar)
         plt.close()
 
-
-# ============================================================
 # HALAMAN: PROFIL KELOMPOK
-# ============================================================
 elif halaman == "Profil Kelompok":
     st.markdown('<div class="main-title">Profil Kelompok</div>', unsafe_allow_html=True)
     st.markdown("---")
